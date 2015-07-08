@@ -1,0 +1,1 @@
+web: gunicorn --pythonpath django_quiz_factory django_quiz_factory.wsgi
