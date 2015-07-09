@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load i18n%}
+
+{% load quiz_tags %}
+
+{% block page_title %} {{ quiz.title }}{% endblock %}
+
+
+{% block content %}
+<p>{{ quiz.description }}</p>
+<ol type="1">
+{% for question in quiz.question_set.all %}
+<li>{{ question.content }}</li>
+	{% if question.figure %}
+    	<img src="{{ question.figure.url }}" alt="{{ question.content }}" />
+	{% endif %}
+	<ol type="a">
+		{% for answer in question.mcquestion.answer_set.all %}
+			<li> {{ answer.content }} </li>
+		{% endfor %}
+	</ol>
+{% endfor %}
+</ol>
+{% endblock %}
