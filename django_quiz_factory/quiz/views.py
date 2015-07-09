@@ -131,6 +131,22 @@ class QuizMarkingDetail(QuizMarkerMixin, DetailView):
             context['sitting'].get_questions(with_answers=True)
         return context
 
+class QuizPrint(ListView):
+    
+    model = Quiz
+    
+    template_name = 'quiz_print.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.quiz = get_object_or_404(Quiz, url=self.kwargs['quiz_name'])
+        
+        return super(QuizPrint, self).dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super(QuizPrint, self).get_context_data(**kwargs)
+
+        context['quiz'] = self.quiz
+        return context
 
 class QuizTake(FormView):
     form_class = QuestionForm
