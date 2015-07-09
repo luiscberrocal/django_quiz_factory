@@ -15,7 +15,7 @@
     	<img src="{{ question.figure.url }}" alt="{{ question.content }}" />
 	{% endif %}
 	<ol type="a">
-		{% for answer in question.answer_set.all %}
+		{% for answer in question.mcquestion.answer_set.all %}
 			<li> {{ answer.content }} </li>
 		{% endfor %}
 	</ol>
