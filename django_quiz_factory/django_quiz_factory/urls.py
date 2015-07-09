@@ -9,7 +9,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^$', TemplateView.as_view(template_name='base.html')),
-
+     url(r'^quiz/',  include('quiz.urls')),
     # Examples:
     # url(r'^$', 'django_quiz_factory.views.home', name='home'),
     # url(r'^django_quiz_factory/', include('django_quiz_factory.foo.urls')),
