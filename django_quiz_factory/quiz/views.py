@@ -397,7 +397,7 @@ class ExamTake(FormView):
 
     def get_form(self, form_class):
         if self.logged_in_user:
-            self.question = self.sitting.get_first_question()
+            self.question = self.sitting.get_next_question()
             self.progress = self.sitting.progress()
         else:
             raise Http404
@@ -457,6 +457,30 @@ class ExamTake(FormView):
 
         return render(self.request, 'result.html', results)
 
+    def form_valid_user(self, form):
+        progress, c = Progress.objects.get_or_create(user=self.request.user)
+        guess = form.cleaned_data['answers']
+        is_correct = self.question.check_if_correct(guess)
+
+        if is_correct is True:
+            self.sitting.add_to_score(1)
+            progress.update_score(self.question, 1, 1)
+        else:
+            self.sitting.add_incorrect_question(self.question)
+            progress.update_score(self.question, 0, 1)
+
+#         if self.quiz.answers_at_end is not True:
+#             self.previous = {'previous_answer': guess,
+#                              'previous_outcome': is_correct,
+#                              'previous_question': self.question,
+#                              'answers': self.question.get_answers(),
+#                              'question_type': {self.question
+#                                                .__class__.__name__: True}}
+#         else:
+#             self.previous = {}
+
+        self.sitting.add_user_answer(self.question, guess)
+        #self.sitting.remove_first_question()
     
 def anon_session_score(session, to_add=0, possible=0):
     """

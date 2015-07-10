@@ -540,16 +540,19 @@ class ExamSitting(Sitting):
         if not self.question_list:
             return False
         self.current_question += 1
-        next, _ = self.question_list.split(',', self.current_question)
-        question_id = int(next)
+        current = self.question_list.split(',')[self.current_question-1]
+        question_id = int(current)
         self.save()
         return Question.objects.get_subclass(id=question_id)
     
     def get_previous_question(self):
-        if not self.question_list or self.current_question == 0:
+        if not self.question_list:
             return False
         self.current_question -= 1
-        current, _ = self.question_list.split(',', self.current_question)
+        if self.current_question < 0:
+            self.current_question = 0
+            
+        current = self.question_list.split(',')[self.current_question-1]
         question_id = int(current)
         self.save()
         return Question.objects.get_subclass(id=question_id)
