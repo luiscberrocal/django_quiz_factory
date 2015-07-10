@@ -3,7 +3,7 @@ from django.conf.urls import patterns, url
 from .views import QuizListView, CategoriesListView,\
     ViewQuizListByCategory, QuizUserProgressView, QuizMarkingList,\
     QuizMarkingDetail, QuizDetailView, QuizTake
-from quiz.views import QuizPrint
+from quiz.views import QuizPrint, ExamTake
 
 
 urlpatterns = patterns('',
@@ -40,7 +40,10 @@ urlpatterns = patterns('',
                        url(regex=r'^(?P<quiz_name>[\w-]+)/take/$',
                            view=QuizTake.as_view(),
                            name='quiz_question'),
-                       
+                       url(regex=r'^(?P<quiz_name>[\w-]+)/exam/$',
+                           view=ExamTake.as_view(),
+                           name='exam_question'),
+    
                        url(regex=r'^(?P<quiz_name>[\w-]+)/print/$',
                            view=QuizPrint.as_view(),
                            name='quiz_print'),

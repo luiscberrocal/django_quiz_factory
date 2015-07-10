@@ -343,6 +343,9 @@ class SittingManager(models.Manager):
         return sitting
 
 
+
+    
+
 class Sitting(models.Model):
     """
     Used to store the progress of logged in users sitting a quiz.
@@ -523,6 +526,38 @@ class Sitting(models.Model):
         answered = len(json.loads(self.user_answers))
         total = self.get_max_score
         return answered, total
+
+
+class ExamSitting(Sitting):
+    current_question = models.IntegerField(default=0)
+    
+    objects = SittingManager()
+
+    class Meta:
+        permissions = (("view_sittings", _("Can see completed exams.")),)
+    
+    def get_next_question(self):
+        if not self.question_list:
+            return False
+        self.current_question += 1
+        next, _ = self.question_list.split(',', self.current_question)
+        question_id = int(next)
+        self.save()
+        return Question.objects.get_subclass(id=question_id)
+    
+    def get_previous_question(self):
+        if not self.question_list or self.current_question == 0:
+            return False
+        self.current_question -= 1
+        current, _ = self.question_list.split(',', self.current_question)
+        question_id = int(current)
+        self.save()
+        return Question.objects.get_subclass(id=question_id)
+    
+    def remove_first_question(self):
+        return
+    
+    
 
 
 @python_2_unicode_compatible

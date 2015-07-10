@@ -9,6 +9,8 @@ from django.views.generic import DetailView, ListView, TemplateView, FormView
 from .forms import QuestionForm, EssayForm
 from .models import Quiz, Category, Progress, Sitting, Question
 from essay.models import Essay_Question
+from django.http.response import Http404
+from quiz.models import ExamSitting
 
 
 class QuizMarkerMixin(object):
@@ -147,6 +149,10 @@ class QuizPrint(ListView):
 
         context['quiz'] = self.quiz
         return context
+    
+
+    
+    
 
 class QuizTake(FormView):
     form_class = QuestionForm
@@ -370,6 +376,88 @@ class QuizTake(FormView):
         return render(self.request, 'result.html', results)
 
 
+class ExamTake(FormView):
+    form_class = QuestionForm
+    template_name = 'exam_question.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.quiz = get_object_or_404(Quiz, url=self.kwargs['quiz_name'])
+        if self.quiz.draft and not request.user.has_perm('quiz.change_quiz'):
+            raise PermissionDenied
+
+        self.logged_in_user = self.request.user.is_authenticated()
+
+        if self.logged_in_user:
+            self.sitting = ExamSitting.objects.user_sitting(request.user,
+                                                        self.quiz)
+        else:
+            raise Http404
+            
+        return super(ExamTake, self).dispatch(request, *args, **kwargs)
+
+    def get_form(self, form_class):
+        if self.logged_in_user:
+            self.question = self.sitting.get_first_question()
+            self.progress = self.sitting.progress()
+        else:
+            raise Http404
+
+        if self.question.__class__ is Essay_Question:
+            form_class = EssayForm
+
+        return form_class(**self.get_form_kwargs())
+    
+    def get_form_kwargs(self):
+        kwargs = super(ExamTake, self).get_form_kwargs()
+
+        return dict(kwargs, question=self.question)
+    
+    def form_valid(self, form):
+        if self.logged_in_user:
+            self.form_valid_user(form)
+            if self.sitting.get_first_question() is False:
+                return self.final_result_user()
+        else:
+            raise Http404
+
+        self.request.POST = {}
+
+        return super(ExamTake, self).get(self, self.request)
+
+    def get_context_data(self, **kwargs):
+        context = super(ExamTake, self).get_context_data(**kwargs)
+        context['question'] = self.question
+        context['quiz'] = self.quiz
+        #if hasattr(self, 'previous'):
+        #    context['previous'] = self.previous
+        if hasattr(self, 'progress'):
+            context['progress'] = self.progress
+        return context
+    
+    def final_result_user(self):
+        results = {
+            'quiz': self.quiz,
+            'score': self.sitting.get_current_score,
+            'max_score': self.sitting.get_max_score,
+            'percent': self.sitting.get_percent_correct,
+            'sitting': self.sitting,
+            'previous': self.previous,
+        }
+
+        self.sitting.mark_quiz_complete()
+
+        if self.quiz.answers_at_end:
+            results['questions'] =\
+                self.sitting.get_questions(with_answers=True)
+            results['incorrect_questions'] =\
+                self.sitting.get_incorrect_questions
+
+        if self.quiz.exam_paper is False:
+            self.sitting.delete()
+
+        return render(self.request, 'result.html', results)
+
+    
 def anon_session_score(session, to_add=0, possible=0):
     """
     Returns the session score for non-signed in users.
