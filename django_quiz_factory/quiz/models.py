@@ -11,7 +11,8 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.conf import settings
 
 from model_utils.managers import InheritanceManager
-
+import logging
+logger = logging.getLogger(__name__)
 
 class CategoryManager(models.Manager):
 
@@ -326,8 +327,33 @@ class SittingManager(models.Manager):
                                   complete=False,
                                   user_answers='{}')
         return new_sitting
+    
+    def new_exam_sitting(self, user, quiz):
+        if quiz.random_order is True:
+            question_set = quiz.question_set.all() \
+                                            .select_subclasses() \
+                                            .order_by('?')
+        else:
+            question_set = quiz.question_set.all() \
+                                            .select_subclasses()
 
-    def user_sitting(self, user, quiz):
+        question_set = question_set.values_list('id', flat=True)
+        if quiz.max_questions and quiz.max_questions < len(question_set):
+            question_set = question_set[:quiz.max_questions]
+
+        questions = ",".join(map(str, question_set))
+
+        new_sitting = self.create(user=user,
+                                  quiz=quiz,
+                                  question_order=questions,
+                                  question_list=questions,
+                                  incorrect_questions="",
+                                  current_score=0,
+                                  complete=False,
+                                  user_answers='{}')
+        return new_sitting
+
+    def user_sitting(self, user, quiz, is_exam=False):
         if quiz.single_attempt is True and self.filter(user=user,
                                                        quiz=quiz,
                                                        complete=True)\
@@ -337,7 +363,11 @@ class SittingManager(models.Manager):
         try:
             sitting = self.get(user=user, quiz=quiz, complete=False)
         except Sitting.DoesNotExist:
-            sitting = self.new_sitting(user, quiz)
+            if is_exam:
+                sitting = self.new_exam_sitting(user, quiz)
+            else:
+                sitting = self.new_sitting(user, quiz)
+            
         except Sitting.MultipleObjectsReturned:
             sitting = self.filter(user=user, quiz=quiz, complete=False)[0]
         return sitting
@@ -536,10 +566,13 @@ class ExamSitting(Sitting):
     class Meta:
         permissions = (("view_sittings", _("Can see completed exams.")),)
     
+    def there_are_more_questions(self):
+        return self.current_question < len(self.question_list.split(','))
+    
     def get_next_question(self):
-        if not self.question_list:
-            return False
         self.current_question += 1
+        if not self.question_list or self.current_question > len(self.question_list.split(',')):
+            return False
         current = self.question_list.split(',')[self.current_question-1]
         question_id = int(current)
         self.save()

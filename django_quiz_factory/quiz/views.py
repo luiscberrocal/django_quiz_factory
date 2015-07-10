@@ -11,6 +11,8 @@ from .models import Quiz, Category, Progress, Sitting, Question
 from essay.models import Essay_Question
 from django.http.response import Http404
 from quiz.models import ExamSitting
+import logging
+logger = logging.getLogger(__name__)
 
 
 class QuizMarkerMixin(object):
@@ -381,6 +383,7 @@ class ExamTake(FormView):
     template_name = 'exam_question.html'
 
     def dispatch(self, request, *args, **kwargs):
+        logger.debug('**** DISPATCH ****')
         self.quiz = get_object_or_404(Quiz, url=self.kwargs['quiz_name'])
         if self.quiz.draft and not request.user.has_perm('quiz.change_quiz'):
             raise PermissionDenied
@@ -389,13 +392,14 @@ class ExamTake(FormView):
 
         if self.logged_in_user:
             self.sitting = ExamSitting.objects.user_sitting(request.user,
-                                                        self.quiz)
+                                                        self.quiz, is_exam=True)
         else:
             raise Http404
             
         return super(ExamTake, self).dispatch(request, *args, **kwargs)
 
     def get_form(self, form_class):
+        logger.debug('**** GET_FORM ****')
         if self.logged_in_user:
             self.question = self.sitting.get_next_question()
             self.progress = self.sitting.progress()
@@ -408,14 +412,23 @@ class ExamTake(FormView):
         return form_class(**self.get_form_kwargs())
     
     def get_form_kwargs(self):
+        logger.debug('**** GET_FORM_KWARGS ****')
         kwargs = super(ExamTake, self).get_form_kwargs()
 
         return dict(kwargs, question=self.question)
     
+    def form_invalid(self, form, **kwargs):
+        logger.debug('**** FORM_INVALID ****')
+        form.non_field_errors()
+        field_errors = [(field.label, field.errors) for field in form]
+        logger.debug(field_errors)        
+        return super(ExamTake, self).form_invalid(form, **kwargs)
+        
     def form_valid(self, form):
+        logger.debug('**** FORM_VALID ****')
         if self.logged_in_user:
             self.form_valid_user(form)
-            if self.sitting.get_first_question() is False:
+            if self.sitting.there_are_more_questions() == False:
                 return self.final_result_user()
         else:
             raise Http404
@@ -425,6 +438,7 @@ class ExamTake(FormView):
         return super(ExamTake, self).get(self, self.request)
 
     def get_context_data(self, **kwargs):
+        logger.debug('**** GET_CONTEXT_DATA ****')
         context = super(ExamTake, self).get_context_data(**kwargs)
         context['question'] = self.question
         context['quiz'] = self.quiz
@@ -458,6 +472,7 @@ class ExamTake(FormView):
         return render(self.request, 'result.html', results)
 
     def form_valid_user(self, form):
+        logger.debug('**** FORM_VALID_USER ****')
         progress, c = Progress.objects.get_or_create(user=self.request.user)
         guess = form.cleaned_data['answers']
         is_correct = self.question.check_if_correct(guess)

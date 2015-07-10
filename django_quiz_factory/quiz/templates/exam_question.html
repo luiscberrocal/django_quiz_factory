@@ -40,7 +40,8 @@
 	{% endfor %}
 
   </ul>
-  <input type="submit" value={% trans "Next" %} class="btn btn-large btn-block btn-warning" >
+  <input type="submit" name="next_question" value={% trans "Next" %} class="btn btn-large btn-block btn-warning" >
+  <input type="submit" name="previous_question" value={% trans "Previous" %} class="btn btn-large btn-block btn-warning" >
 </form>
 
 {% endif %}
