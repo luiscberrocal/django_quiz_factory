@@ -30,6 +30,9 @@
 				<a href="{% url 'quiz_start_page' slug=quiz.url %}">
 				  {% trans "View details" %}
 				</a>
+                <a href="{% url 'exam_question' quiz_name=quiz.url %}">
+				  {% trans "Take Exam" %}
+				</a>
 			</tr>
 
         {% endfor %}

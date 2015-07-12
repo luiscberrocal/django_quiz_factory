@@ -384,6 +384,7 @@ class ExamTake(FormView):
 
     def dispatch(self, request, *args, **kwargs):
         logger.debug('**** DISPATCH ****')
+
         self.quiz = get_object_or_404(Quiz, url=self.kwargs['quiz_name'])
         if self.quiz.draft and not request.user.has_perm('quiz.change_quiz'):
             raise PermissionDenied
@@ -395,8 +396,18 @@ class ExamTake(FormView):
                                                         self.quiz, is_exam=True)
         else:
             raise Http404
-            
+
         return super(ExamTake, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        logger.debug('**** POST ****')
+        return super(ExamTake, self).post(request,*args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        logger.debug('**** GET ****')
+
+        return super(ExamTake, self).get(request,*args, **kwargs)
+
 
     def get_form(self, form_class):
         logger.debug('**** GET_FORM ****')
