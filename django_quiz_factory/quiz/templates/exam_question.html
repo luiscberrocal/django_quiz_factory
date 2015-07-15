@@ -28,7 +28,7 @@
     <img src="{{ question.figure.url }}" alt="{{ question.content }}" />
 {% endif %}
 
-<form action="" method="POST">{% csrf_token %}
+<form action="{%  url 'exam_question' quiz.url  %}" method="POST">{% csrf_token %}
   <input type=hidden name="question_id" value="{{ question.id }}">
 
   <ul class="list-group">

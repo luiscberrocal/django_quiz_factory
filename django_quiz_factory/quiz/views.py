@@ -2,9 +2,9 @@ import random
 
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, render_to_response
 from django.utils.decorators import method_decorator
-from django.views.generic import DetailView, ListView, TemplateView, FormView
+from django.views.generic import DetailView, ListView, TemplateView, FormView, View
 
 from .forms import QuestionForm, EssayForm
 from .models import Quiz, Category, Progress, Sitting, Question
@@ -376,6 +376,28 @@ class QuizTake(FormView):
         del self.request.session[self.quiz.anon_q_data()]
 
         return render(self.request, 'result.html', results)
+
+class ExamTake2(View):
+
+    def post(self, request, *args, **kwargs):
+        logger.debug('**** POST ****')
+        return super(ExamTake, self).post(request,*args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        logger.debug('**** GET ****')
+
+        self.quiz = get_object_or_404(Quiz, url=self.kwargs['quiz_name'])
+        if self.quiz.draft and not request.user.has_perm('quiz.change_quiz'):
+            raise PermissionDenied
+
+        self.logged_in_user = self.request.user.is_authenticated()
+
+        if self.logged_in_user:
+            self.sitting = ExamSitting.objects.user_sitting(request.user,
+                                                        self.quiz, is_exam=True)
+        else:
+            raise Http404
+        return render_to_response('exam_question.html')
 
 
 class ExamTake(FormView):
